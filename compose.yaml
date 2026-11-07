@@ -25,6 +25,8 @@ services:
       context: .
       dockerfile: src/main/docker/Dockerfile.target
     ports: ["${TARGET_PORT:-8001}:8001"]
+    volumes:
+      - .:/app
   proxy:
     build:
       context: .
@@ -35,6 +37,8 @@ services:
       REDIS_URL: redis://redis:6379/0
       TARGET_API_URL: http://target-api:8001
     ports: ["${PROXY_PORT:-8000}:8000"]
+    volumes:
+      - .:/app
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
