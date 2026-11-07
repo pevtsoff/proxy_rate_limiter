@@ -8,4 +8,4 @@
 - Keep comments focused on why a non-obvious decision exists; use docstrings for public modules, classes, and functions where they add useful context.
 - Raise specific exceptions and preserve useful error context. Do not catch and silently discard errors.
 - Follow the repository's Ruff configuration for imports, linting, and formatting (100-character line length; double quotes).
-
+- Use functions as comments approach
