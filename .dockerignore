@@ -1,0 +1,14 @@
+.git
+.venv
+.claude
+.codex
+.opencode
+.env
+.env.*
+!.env.example
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+htmlcov

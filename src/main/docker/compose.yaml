@@ -1,0 +1,141 @@
+name: distributed-rate-limiter
+
+x-app-build: &app-build
+  context: ../../..
+  dockerfile: src/main/docker/Dockerfile
+
+x-app-volumes: &app-volumes
+  - type: bind
+    source: ../../..
+    target: /app
+
+x-app-healthcheck: &app-healthcheck
+  test:
+    - CMD
+    - python
+    - -c
+    - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"
+  interval: 5s
+  timeout: 3s
+  retries: 10
+  start_period: 10s
+
+services:
+  postgres:
+    image: postgres:17.2-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-proxy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-proxy}
+      POSTGRES_TEST_DB: ${POSTGRES_TEST_DB:-proxy_test}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7.4.1-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  target-api:
+    build:
+      <<: *app-build
+      target: runtime
+    image: distributed-rate-limiter:runtime
+    restart: unless-stopped
+    volumes: *app-volumes
+    command: ["uvicorn", "target_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    env_file: ../../../.env
+    ports:
+      - "${TARGET_API_PORT:-8001}:8000"
+    healthcheck: *app-healthcheck
+
+  proxy:
+    build:
+      <<: *app-build
+      target: runtime
+    image: distributed-rate-limiter:runtime
+    restart: unless-stopped
+    volumes: *app-volumes
+    # Several uvicorn workers = several proxy instances sharing Redis counters.
+    command:
+      - sh
+      - -c
+      - >-
+        alembic upgrade head &&
+        exec uvicorn proxy.main:app --host 0.0.0.0 --port 8000
+        --workers ${PROXY_WORKERS:-2} --proxy-headers
+    env_file: ../../../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-proxy}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-proxy}
+      REDIS_URL: redis://redis:6379/0
+      RATE_LIMIT_STORAGE_URL: async+redis://redis:6379/1
+      TARGET_API_URL: http://target-api:8000
+    ports:
+      - "${PROXY_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      target-api:
+        condition: service_healthy
+    healthcheck: *app-healthcheck
+
+  tests:
+    build:
+      <<: *app-build
+      target: test
+    image: distributed-rate-limiter:test
+    profiles: ["test"]
+    volumes: *app-volumes
+    env_file: ../../../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-proxy}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_TEST_DB:-proxy_test}
+      REDIS_URL: redis://redis:6379/14
+      RATE_LIMIT_STORAGE_URL: async+redis://redis:6379/15
+      ADMIN_RATE_LIMIT_ENABLED: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["pytest"]
+
+  locust:
+    build:
+      <<: *app-build
+      target: test
+    image: distributed-rate-limiter:test
+    profiles: ["perf"]
+    volumes: *app-volumes
+    env_file: ../../../.env
+    command: ["locust", "-f", "src/test/performance/locustfile.py", "--host", "http://proxy:8000"]
+    ports:
+      - "${LOCUST_PORT:-8089}:8089"
+    depends_on:
+      proxy:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:
