@@ -7,4 +7,4 @@
 - **Polymorphic assignment:** a single relationship table serves resource and resource-group rules. This is compact but loses a direct FK for `resource_id`; API checks validate it.
 - **SQLAdmin:** gives maintainers a usable CRUD interface quickly. The local sample has no authentication integration; deployments must protect it.
 - **SlowAPI:** included as an explicit dependency per requested stack. Dynamic per-consumer policies are enforced by the proxy's Redis counter because SlowAPI decorators are static per route; the configured strategy field is not yet algorithmically honored.
-- **Schema creation:** SQLAlchemy creates tables on startup for minimum local setup. Use versioned migrations before production.
+- **Schema changes:** Alembic revisions in `db/migrations` are applied on proxy startup. Revision filenames include date and time using `ALEMBIC_FILE_TEMPLATE` from `.env`.

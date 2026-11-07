@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     lru_cache_ttl: int = 3600
     default_requests: int = 100
     default_period: str = "minute"
+    alembic_file_template: str = "%(year)d%(month).2d%(day).2d_%(hour).2d%(minute).2d%(second).2d_%%(slug)s"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

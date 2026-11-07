@@ -1,10 +1,13 @@
 """Proxy limiter REST API and transparent target API forwarding."""
 
+import asyncio
 import logging
 import traceback
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
+from alembic import command
+from alembic.config import Config
 import httpx
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, Response
@@ -15,7 +18,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.admin_view import CacheInvalidatingModelView
 from app.database import engine, get_session, redis_client, session_factory
-from app.models.base import Base
 from app.models.entities import Consumer, ConsumerGroup, ConsumerGroupPolicy, Policy, Resource, ResourceGroup, ServiceSetting
 from app.routes.admin_api import router as admin_api_router
 from app.services.policy_service import consume_capacity, invalidate_policy_cache, resolve_policy
@@ -25,9 +27,8 @@ logger = logging.getLogger(__name__)
 
 
 async def initialize() -> None:
-    """Create the local schema and default configuration."""
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
+    """Apply database migrations and create default configuration."""
+    await asyncio.to_thread(command.upgrade, Config("alembic.ini"), "head")
     async with session_factory() as session:
         if await session.scalar(select(Policy.id).where(Policy.name == "default")) is None:
             session.add(Policy(name="default", number_of_requests=settings.default_requests, time_period=settings.default_period))

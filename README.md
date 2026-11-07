@@ -6,6 +6,8 @@ A local asynchronous FastAPI reverse proxy that applies per-consumer policies st
 
 Install Docker Engine and Docker Compose v2. `./run.sh` creates `.env` from `.env.example` on first run, builds the containers, and starts PostgreSQL, Redis, target API, and proxy. Stop with Ctrl+C. The proxy is at `http://localhost:8000`; target API is at `http://localhost:8001`; Admin UI is at `http://localhost:8000/admin`.
 
+The proxy applies Alembic migrations from `db/migrations` automatically on startup. Generate revisions in the proxy container with `alembic revision --autogenerate -m "describe change"`; `ALEMBIC_FILE_TEMPLATE` in `.env` controls the date/time-stamped revision filename. Review generated revisions before starting the app.
+
 `./seed.sh` starts the stack, synchronizes target routes, and creates a sample policy. Use Admin UI to create a consumer group and consumer, then assign a policy to a resource or resource group. An incoming `Authorization: Bearer <consumer-id>` header identifies the consumer.
 
 ## Example
