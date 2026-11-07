@@ -43,7 +43,11 @@ class PolicyAdmin(CacheInvalidatingModelView, model=Policy):
 
 
 class ConsumerGroupAdmin(CacheInvalidatingModelView, model=ConsumerGroup):
-    column_list: ClassVar[list[object]] = [ConsumerGroup.id, ConsumerGroup.group_name]
+    column_list: ClassVar[list[object]] = [
+        ConsumerGroup.id,
+        ConsumerGroup.group_name,
+        ConsumerGroup.group_type,
+    ]
 
 
 class ConsumerAdmin(CacheInvalidatingModelView, model=Consumer):

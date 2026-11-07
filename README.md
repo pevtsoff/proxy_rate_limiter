@@ -10,11 +10,30 @@ The proxy applies Alembic migrations from `db/migrations` automatically on start
 
 `./seed.sh` starts the stack, synchronizes target routes, and creates a sample policy. Use Admin UI to create a consumer group and consumer, then assign a policy to a resource or resource group. An incoming `Authorization: Bearer <consumer-id>` header identifies the consumer.
 
-## Example
+## Calling the target API through the proxy
+
+Send target API requests to the proxy's base URL (`http://localhost:8000`), keeping the target
+endpoint's HTTP method, path, query parameters, and request body. The proxy checks the consumer's
+rate limit, then forwards allowed requests to the target API. Pass the consumer ID as a bearer token
+in the `Authorization` header. For example, a target endpoint at `GET /orders/1` is called through
+the proxy at `GET http://localhost:8000/orders/1`.
+
+```sh
+# GET a target resource through the proxy
+curl -i 'http://localhost:8000/orders/1?include=items' \
+  -H 'Authorization: Bearer demo-consumer'
+
+# POST to a target endpoint through the proxy
+curl -i -X POST 'http://localhost:8000/orders' \
+  -H 'Authorization: Bearer demo-consumer' \
+  -H 'Content-Type: application/json' \
+  -d '{"item": "book", "quantity": 1}'
+```
+
+Synchronize the target API's routes before assigning policies to resources:
 
 ```sh
 curl -X POST http://localhost:8000/admin-api/resources/sync
-curl -i http://localhost:8000/orders/1 -H 'Authorization: Bearer demo-consumer'
 ```
 
 Before configuring a consumer and assignment, requests with an unassigned known consumer use the default limit. Unknown consumers are treated as having the default policy in this demonstration.
