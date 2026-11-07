@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rate_limiter}
+      POSTGRES_USER: ${POSTGRES_USER:-rate_limiter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rate_limiter_local}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rate_limiter} -d ${POSTGRES_DB:-rate_limiter}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  redis:
+    image: redis:7.4-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  target-api:
+    build:
+      context: .
+      dockerfile: src/main/docker/Dockerfile.target
+    ports: ["${TARGET_PORT:-8001}:8001"]
+  proxy:
+    build:
+      context: .
+      dockerfile: src/main/docker/Dockerfile.proxy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-rate_limiter}:${POSTGRES_PASSWORD:-rate_limiter_local}@postgres:5432/${POSTGRES_DB:-rate_limiter}
+      REDIS_URL: redis://redis:6379/0
+      TARGET_API_URL: http://target-api:8001
+    ports: ["${PROXY_PORT:-8000}:8000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      target-api: {condition: service_started}
+volumes:
+  postgres_data:

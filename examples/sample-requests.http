@@ -1,0 +1,9 @@
+### Import target API resources
+POST http://localhost:8000/admin-api/resources/sync
+
+### Call target through proxy (after running seed.sh)
+GET http://localhost:8000/orders/1
+Authorization: Bearer demo-consumer
+
+### Admin UI
+GET http://localhost:8000/admin
