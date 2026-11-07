@@ -1,0 +1,94 @@
+### Sample requests (VS Code REST Client / JetBrains HTTP client).
+### Start the stack with ./run.sh first; it seeds demo data.
+@proxy = http://localhost:8000
+@target = http://localhost:8001
+
+### 1. Discover the target API endpoints from its swagger docs (MUC1.4)
+POST {{proxy}}/admin/resources/sync
+
+### 2. List resources
+GET {{proxy}}/admin/resources
+
+### 3. Create a consumer group with its first consumer (MUC1.1)
+POST {{proxy}}/admin/consumer-groups
+Content-Type: application/json
+
+{"group_name": "premium", "consumer_ids": ["alice"]}
+
+### 4. Add a consumer to a group (MUC1.2)
+POST {{proxy}}/admin/consumers
+Content-Type: application/json
+
+{"id": "bob", "consumer_group_id": 1}
+
+### 5. Create a rate limiting policy (MUC1.3 / MUC4)
+POST {{proxy}}/admin/policies
+Content-Type: application/json
+
+{"name": "five-per-minute", "rate_limiting_strategy": "fixed-window", "number_of_requests": 5, "time_period": "minute"}
+
+### 6. Supported strategies
+GET {{proxy}}/admin/policies/strategies
+
+### 7. Update a policy (MUC4) — invalidates the policy cache (MUC5)
+PATCH {{proxy}}/admin/policies/2
+Content-Type: application/json
+
+{"number_of_requests": 20}
+
+### 8. Create a resource group
+POST {{proxy}}/admin/resource-groups
+Content-Type: application/json
+
+{"name": "checkout", "description": "cart endpoints", "resource_ids": [11, 12]}
+
+### 9. Assign a policy to one resource (MUC1.5)
+POST {{proxy}}/admin/consumer-groups-policies
+Content-Type: application/json
+
+{"consumer_group_id": 1, "relationship_type": "resource", "policy_id": 2, "resource_id": 3}
+
+### 10. Assign a policy to a resource group
+POST {{proxy}}/admin/consumer-groups-policies
+Content-Type: application/json
+
+{"consumer_group_id": 1, "relationship_type": "resource_group", "policy_id": 2, "resource_group_id": 1}
+
+### 11. Assign one policy to all resources of a consumer group
+POST {{proxy}}/admin/consumer-groups-policies
+Content-Type: application/json
+
+{"consumer_group_id": 1, "relationship_type": "all_resources", "policy_id": 2}
+
+### 12. List / update / delete assignments of a consumer group (MUC2)
+GET {{proxy}}/admin/consumer-groups-policies?consumer_group_id=1
+
+###
+PATCH {{proxy}}/admin/consumer-groups-policies/1
+Content-Type: application/json
+
+{"policy_id": 3}
+
+###
+DELETE {{proxy}}/admin/consumer-groups-policies/1
+
+### 13. Mint a bearer token for a consumer (development helper)
+# @name token
+POST {{proxy}}/admin/tokens
+Content-Type: application/json
+
+{"consumer_id": "free-user-1"}
+
+### 14. Call the target API through the proxy (CUC1). Repeat >10 times for a 429.
+GET {{proxy}}/orders/1
+Authorization: Bearer {{token.response.body.access_token}}
+
+### 15. Write through the proxy
+POST {{proxy}}/orders
+Authorization: Bearer {{token.response.body.access_token}}
+Content-Type: application/json
+
+{"name": "pen"}
+
+### 16. Target API directly (bypasses the limiter; for comparison)
+GET {{target}}/orders/1
