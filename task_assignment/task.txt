@@ -1,0 +1,141 @@
+Home Assignment
+Build a Configurable Distributed Rate Limiter
+1. Problem statement
+Our platform exposes APIs consumed by multiple clients, including mobile applications, web applications and internal services.
+As usage grows, we need a mechanism to control incoming API traffic based on configurable policies.
+Build a service that allows the platform to define and enforce request policies for different consumers and APIs.
+The system should provide a clear response for incoming requests based on the applicable policies.
+You may make reasonable assumptions about functionality that is not explicitly defined. Document these assumptions as part of your
+submission.
+For example:
+● A regular user can make 100 requests per minute.
+● A premium user can make 500 requests per minute.
+● Different API endpoints can have different limits.
+● Rate limits should be consistently enforced even when requests are handled by multiple application instances.
+Your task is to build a working implementation of this rate-limiting service.
+
+2. Functional expectations
+Your solution should provide the ability to:
+1. Define and manage request policies.
+2. Associate policies with different consumers and APIs.
+3. Evaluate incoming requests against applicable policies.
+4. Communicate the outcome of request evaluation.
+5. Provide relevant information to callers when a request cannot be processed.
+You may introduce additional capabilities where you believe they are necessary.
+
+3. Technical requirements
+● Language: Java or Python.
+● Databases: PostgreSQL and Redis.
+● Local execution environment.
+● REST APIs.
+● Automated tests.
+You have flexibility in choosing frameworks and libraries.
+Any significant deviation from the suggested technology choices should be explained in your documentation.
+
+4. Engineering expectations
+We are interested in your engineering decisions, not just the final functionality.
+You do not need to implement a production-grade distributed infrastructure. Prioritise a correct, understandable and maintainable solution.
+
+5. Design decisions
+We deliberately do not prescribe the implementation approach.
+You should decide and document design decisions and architecture choices that you considered and rejected.
+We are interested in understanding why you selected your approach and what trade-offs it introduces.
+6. Documentation requirements
+Along with the source code, submit the following documents.
+A. Requirements and assumptions (01-requirements.md)
+Document your understanding of the problem.
+Answer these questions:
+1. What assumptions did you make?
+2. Which requirements did you consider essential?
+3. Were there any ambiguities in the problem statement?
+4. What additional requirements would you clarify with the product team?
+5. What is explicitly outside the scope of your implementation?
+B. Architecture and design (02-architecture.md)
+
+None
+Document your proposed architecture.
+Include:
+● High-level component architecture.
+● Request execution flow.
+● Database schema, if applicable.
+● API contracts.
+● Important component responsibilities.
+● How concurrency and multiple instances are handled.
+A simple architecture diagram or sequence diagram is encouraged.
+C. Design decisions and trade-offs (03-design-decisions.md)
+D. AI usage documentation (04-ai-usage.md)
+We encourage the use of AI tools during development.
+Please document:
+● Which AI tools did you use?
+● What tasks did you use AI for?
+● What were the significant prompts you provided?
+● What code, architecture or test cases were generated with AI?
+● Which AI suggestions did you accept?
+● Which suggestions did you reject or modify, and why?
+● Did you encounter any incorrect or misleading AI-generated output? How did you identify and correct it?
+Important: Include the actual prompts used, preferably with the sequence of significant interactions, rather than only summarising your AI
+usage.
+We are not evaluating how little AI you used. We want to understand how you directed it, reviewed its output and made engineering decisions.
+
+7. Testing expectations
+Holistic testing strategy and coverage is valuable for quality assurance. You should cover different types of automated testing and reduce
+dependency on manual testing and qa iterations.
+Include instructions to execute tests locally.
+We value meaningful test scenarios over achieving a particular percentage of code coverage.
+
+8. Local execution requirements
+The solution should be executable on a developer's laptop without complicated setup.
+Expected dependencies:
+● Java or Python runtime.
+● Local PostgreSQL.
+● Local Redis.
+Suggested execution experience:
+
+# Start application
+./run.sh
+
+# Execute tests
+./test.sh
+You can provide equivalent commands for your chosen language.
+The README should explain prerequisites, configuration, startup, test execution and sample API requests.
+Please avoid:
+● Cloud infrastructure.
+● Managed databases or Redis services.
+● Kubernetes.
+● Paid third-party services.
+● Complicated multi-service deployment.
+● Dependencies requiring external API credentials.
+The evaluator should be able to clone the repository and run the solution locally with minimal effort.
+
+None
+9. Expected repository structure
+We recommend organising your submission approximately as follows:
+
+distributed-rate-limiter/
+│
+├── README.md
+├── run.sh
+├── test.sh
+│
+├── docs/
+│ ├── 01-requirements.md
+│ ├── 02-architecture.md
+│ ├── 03-design-decisions.md
+│ └── 04-ai-usage.md
+│
+├── src/
+│ ├── main/
+│ └── test/
+│
+├── db/
+│ └── migrations/
+│
+└── examples/
+└── sample-requests.http
+This is a suggested structure, not a mandatory one.
+10. Submission instructions
+Please submit:
+1. Complete source code.
+2. All required documentation.
+3. Test cases.
+4. README with local execution instructions.
