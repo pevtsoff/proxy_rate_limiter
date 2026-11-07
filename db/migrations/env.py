@@ -4,26 +4,24 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import pool
-from sqlalchemy.ext.asyncio import async_engine_from_config
-
+from app import models as _models  # noqa: F401
 from app.config import settings
 from app.models.base import Base
-from app.models import entities  # noqa: F401
+from sqlalchemy import pool
+from sqlalchemy.ext.asyncio import async_engine_from_config
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
-config.set_section_option(
-    "alembic", "file_template", settings.alembic_file_template.replace("%", "%%")
-)
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
     """Run migrations without a database connection."""
-    context.configure(url=settings.database_url, target_metadata=target_metadata, literal_binds=True)
+    context.configure(
+        url=settings.database_url, target_metadata=target_metadata, literal_binds=True
+    )
     with context.begin_transaction():
         context.run_migrations()
 

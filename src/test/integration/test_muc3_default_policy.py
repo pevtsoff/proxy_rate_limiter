@@ -3,12 +3,11 @@
 import uuid
 
 import pytest
+from app.config import settings
+from app.models import Consumer
+from app.services.policy_service import resolve_policy
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.config import settings
-from app.models.entities import Consumer
-from app.services.policy_service import resolve_policy
 from test_helpers import get_unassigned_consumer_group
 
 

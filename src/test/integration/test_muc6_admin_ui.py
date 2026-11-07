@@ -1,10 +1,16 @@
 """Admin UI model registration and page coverage."""
 
 import pytest
-from httpx import AsyncClient
-
 from app.main import admin
-from app.models.entities import Consumer, ConsumerGroup, ConsumerGroupPolicy, Policy, Resource, ResourceGroup
+from app.models import (
+    Consumer,
+    ConsumerGroup,
+    ConsumerGroupPolicy,
+    Policy,
+    Resource,
+    ResourceGroup,
+)
+from httpx import AsyncClient
 
 
 @pytest.mark.asyncio

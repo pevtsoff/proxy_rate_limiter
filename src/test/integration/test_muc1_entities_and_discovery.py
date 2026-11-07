@@ -1,11 +1,10 @@
 """Manager entity creation and target resource discovery coverage."""
 
 import pytest
+from app.models import Consumer, ConsumerGroup, Resource
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.entities import Consumer, ConsumerGroup, Resource
 
 
 @pytest.mark.asyncio
@@ -42,6 +41,11 @@ async def test_muc1_sync_imports_target_openapi_operations(
 
     assert response.status_code == 200
     assert response.json()["resources_synced"] >= 0
-    resources = (await db_session.scalars(select(Resource).where(Resource.resource_path == "/orders"))).all()
+    resources = (
+        await db_session.scalars(select(Resource).where(Resource.resource_path == "/orders"))
+    ).all()
     assert {resource.method for resource in resources} >= {"GET", "POST", "PUT", "PATCH"}
-    assert all(resource.io_type == ("read" if resource.method == "GET" else "write") for resource in resources)
+    assert all(
+        resource.io_type == ("read" if resource.method == "GET" else "write")
+        for resource in resources
+    )

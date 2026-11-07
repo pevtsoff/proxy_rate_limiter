@@ -3,9 +3,8 @@
 from collections.abc import Sequence
 
 from alembic import op
-
+from app import models as _models  # noqa: F401
 from app.models.base import Base
-from app.models import entities  # noqa: F401
 
 revision: str = "20261107_000000"
 down_revision: str | None = None

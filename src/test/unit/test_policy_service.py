@@ -1,11 +1,11 @@
 """Unit coverage for limiter windows and OpenAPI path resolution."""
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.entities import Resource, ResourceGroup
+from app.models import Resource, ResourceGroup
 from app.services import policy_service
 from app.services.policy_service import PERIOD_SECONDS, consume_capacity, find_resource
+from doubles.fake_redis import FakeRedis
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def test_period_values_are_seconds() -> None:
@@ -19,7 +19,14 @@ async def test_find_resource_matches_openapi_path_parameters(db_session: AsyncSe
     group = ResourceGroup(name="test-target")
     db_session.add(group)
     await db_session.flush()
-    db_session.add(Resource(io_type="read", method="GET", resource_path="/test-orders/{item_id}", resource_group_id=group.id))
+    db_session.add(
+        Resource(
+            io_type="read",
+            method="GET",
+            resource_path="/test-orders/{item_id}",
+            resource_group_id=group.id,
+        )
+    )
     await db_session.flush()
 
     result = await find_resource(db_session, "GET", "/test-orders/42")
@@ -29,7 +36,9 @@ async def test_find_resource_matches_openapi_path_parameters(db_session: AsyncSe
 
 
 @pytest.mark.asyncio
-async def test_capacity_counter_rejects_requests_after_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_capacity_counter_rejects_requests_after_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Atomic counter results allow up to the policy limit."""
     fake_redis = FakeRedis()
     monkeypatch.setattr(policy_service, "redis_client", fake_redis)
@@ -41,17 +50,3 @@ async def test_capacity_counter_rejects_requests_after_limit(monkeypatch: pytest
     assert first == (True, 1)
     assert second == (True, 0)
     assert third == (False, 0)
-
-
-class FakeRedis:
-    """Minimal Redis counter double for deterministic unit testing."""
-
-    def __init__(self) -> None:
-        self.counts: dict[str, int] = {}
-
-    async def incr(self, key: str) -> int:
-        self.counts[key] = self.counts.get(key, 0) + 1
-        return self.counts[key]
-
-    async def expire(self, key: str, seconds: int) -> None:
-        return None

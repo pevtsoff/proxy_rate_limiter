@@ -25,7 +25,9 @@ async def test_muc4_policy_crud_and_validation(api_client: AsyncClient) -> None:
     assert updated.status_code == 200
     assert updated.json()["number_of_requests"] == 8
 
-    invalid = await api_client.post("/admin-api/policies", json={**payload, "time_period": "fortnight"})
+    invalid = await api_client.post(
+        "/admin-api/policies", json={**payload, "time_period": "fortnight"}
+    )
     assert invalid.status_code == 422
 
     deleted = await api_client.delete(f"/admin-api/policies/{policy_id}")

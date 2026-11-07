@@ -5,8 +5,8 @@ import asyncio
 from sqlalchemy import select
 
 from app.database import engine, session_factory
+from app.models import Consumer, ConsumerGroup, ConsumerGroupPolicy, Policy, ResourceGroup
 from app.models.base import Base
-from app.models.entities import Consumer, ConsumerGroup, ConsumerGroupPolicy, Policy, ResourceGroup
 
 
 async def seed() -> None:
@@ -46,16 +46,27 @@ async def ensure_consumer(session, group_id: int) -> None:
 
 
 async def ensure_assignment(session, group_id: int, policy_id: int) -> None:
-    resource_group = await session.scalar(select(ResourceGroup).where(ResourceGroup.name == "target-api"))
+    resource_group = await session.scalar(
+        select(ResourceGroup).where(ResourceGroup.name == "target-api")
+    )
     if resource_group is None:
         return
-    assignment = await session.scalar(select(ConsumerGroupPolicy).where(
-        ConsumerGroupPolicy.consumer_group_id == group_id,
-        ConsumerGroupPolicy.relationship_type == "resource_group",
-        ConsumerGroupPolicy.resource_id == resource_group.id,
-    ))
+    assignment = await session.scalar(
+        select(ConsumerGroupPolicy).where(
+            ConsumerGroupPolicy.consumer_group_id == group_id,
+            ConsumerGroupPolicy.relationship_type == "resource_group",
+            ConsumerGroupPolicy.resource_id == resource_group.id,
+        )
+    )
     if assignment is None:
-        session.add(ConsumerGroupPolicy(consumer_group_id=group_id, relationship_type="resource_group", policy_id=policy_id, resource_id=resource_group.id))
+        session.add(
+            ConsumerGroupPolicy(
+                consumer_group_id=group_id,
+                relationship_type="resource_group",
+                policy_id=policy_id,
+                resource_id=resource_group.id,
+            )
+        )
 
 
 if __name__ == "__main__":

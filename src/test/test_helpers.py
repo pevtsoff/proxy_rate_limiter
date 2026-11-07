@@ -1,9 +1,8 @@
 """Shared helper functions for integration tests."""
 
+from app.models import ConsumerGroup, ConsumerGroupPolicy
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.entities import ConsumerGroup, ConsumerGroupPolicy
 
 
 async def get_unassigned_consumer_group(session: AsyncSession) -> tuple[ConsumerGroup, bool]:
@@ -11,9 +10,7 @@ async def get_unassigned_consumer_group(session: AsyncSession) -> tuple[Consumer
     groups = (await session.scalars(select(ConsumerGroup))).all()
     for group in groups:
         assignment = await session.scalar(
-            select(ConsumerGroupPolicy.id).where(
-                ConsumerGroupPolicy.consumer_group_id == group.id
-            )
+            select(ConsumerGroupPolicy.id).where(ConsumerGroupPolicy.consumer_group_id == group.id)
         )
         if assignment is None:
             return group, False

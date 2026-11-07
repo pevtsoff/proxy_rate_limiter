@@ -1,12 +1,15 @@
 """Consumer-facing proxy acceptance coverage."""
 
-import pytest
 import uuid
-from httpx import AsyncClient
+
+import pytest
 from app.config import settings
 from app.database import session_factory
-from app.models.entities import Consumer, ConsumerGroup
+from app.main import app
+from app.models import Consumer, ConsumerGroup
+from httpx import AsyncClient
 from test_helpers import get_unassigned_consumer_group
+
 
 @pytest.mark.asyncio
 async def test_cuc1_missing_bearer_is_json(api_client: AsyncClient) -> None:
@@ -31,8 +34,8 @@ async def test_cuc1_exhausted_consumer_gets_json_429(
     async def resolve(*args: object, **kwargs: object) -> dict[str, int | str]:
         return {"limit": 1, "period": 60, "strategy": "moving-window"}
 
-    monkeypatch.setattr("app.main.consume_capacity", allow_once)
-    monkeypatch.setattr("app.main.resolve_policy", resolve)
+    monkeypatch.setattr(app.state, "capacity_consumer", allow_once)
+    monkeypatch.setattr(app.state, "policy_resolver", resolve)
 
     first = await api_client.get("/orders", headers={"Authorization": "Bearer cuc1-consumer"})
     blocked = await api_client.get("/orders", headers={"Authorization": "Bearer cuc1-consumer"})
