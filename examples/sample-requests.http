@@ -1,0 +1,95 @@
+### Sample requests (IntelliJ HTTP client / VS Code REST Client). Run ./run.sh and ./seed.sh first.
+@proxy = http://localhost:8000
+@admin = admin
+@adminPassword = admin-dev-password
+
+### --- Admin API (HTTP Basic) ---------------------------------------------------------------
+
+### Supported strategies and time periods
+GET {{proxy}}/admin/api/policies/strategies
+Authorization: Basic {{admin}} {{adminPassword}}
+
+### MUC3: the pre-created default policy
+GET {{proxy}}/admin/api/policies/default
+Authorization: Basic {{admin}} {{adminPassword}}
+
+### MUC4: create a policy
+POST {{proxy}}/admin/api/policies
+Authorization: Basic {{admin}} {{adminPassword}}
+Content-Type: application/json
+
+{"name": "burst-5-per-second", "rate_limiting_strategy": "token-bucket", "number_of_requests": 5, "time_period": "second"}
+
+### MUC4: list policies (filter + pagination)
+GET {{proxy}}/admin/api/policies?name=minute&page=0&size=10
+Authorization: Basic {{admin}} {{adminPassword}}
+
+### MUC1.4: fetch resources from the target's OpenAPI document
+POST {{proxy}}/admin/api/resources/sync
+Authorization: Basic {{admin}} {{adminPassword}}
+
+### Resources (filters: path, method, io_type, resource_group_id)
+GET {{proxy}}/admin/api/resources?io_type=write&size=50
+Authorization: Basic {{admin}} {{adminPassword}}
+
+### Resource groups
+GET {{proxy}}/admin/api/resource-groups
+Authorization: Basic {{admin}} {{adminPassword}}
+
+### MUC1.1: consumer groups are created with their first consumers (fails with 409 after seed.sh)
+POST {{proxy}}/admin/api/consumer-groups
+Authorization: Basic {{admin}} {{adminPassword}}
+Content-Type: application/json
+
+{"group_name": "premium", "consumer_ids": ["premium-user-9"]}
+
+### MUC1.2: create a consumer in a group (use an id from GET /admin/api/consumer-groups)
+POST {{proxy}}/admin/api/consumers
+Authorization: Basic {{admin}} {{adminPassword}}
+Content-Type: application/json
+
+{"consumer_id": "regular-user-9", "consumer_group_id": 2}
+
+### MUC2: assignments of one consumer group
+GET {{proxy}}/admin/api/consumer-groups-policies?consumer_group_id=2
+Authorization: Basic {{admin}} {{adminPassword}}
+
+### MUC1.5: assign a policy to a resource group (relationship_type: resource | resource_group)
+POST {{proxy}}/admin/api/consumer-groups-policies
+Authorization: Basic {{admin}} {{adminPassword}}
+Content-Type: application/json
+
+{"consumer_group_id": 3, "relationship_type": "resource_group", "policy_id": 2, "resource_id": 2}
+
+### Development token for a consumer
+POST {{proxy}}/admin/api/tokens
+Authorization: Basic {{admin}} {{adminPassword}}
+Content-Type: application/json
+
+{"consumer_id": "free-user-1"}
+
+> {% client.global.set("token", response.body.access_token); %}
+
+### Evict the rule cache on every instance
+DELETE {{proxy}}/admin/api/cache
+Authorization: Basic {{admin}} {{adminPassword}}
+
+### --- Consumer traffic (Bearer token) -----------------------------------------------------
+
+### CUC1: proxied exactly like the target API; repeat 11 times to get HTTP 429
+GET {{proxy}}/orders/1
+Authorization: Bearer {{token}}
+
+### Writes of the free tier: token bucket, 3 per minute
+POST {{proxy}}/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"item": "book"}
+
+### Default policy (nothing assigned for free tier on /users)
+GET {{proxy}}/users/42
+Authorization: Bearer {{token}}
+
+### Missing token -> 401 JSON
+GET {{proxy}}/carts

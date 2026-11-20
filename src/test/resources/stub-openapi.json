@@ -1,0 +1,84 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Stub target API",
+    "version": "1"
+  },
+  "paths": {
+    "/orders": {
+      "get": {
+        "operationId": "list_orders"
+      },
+      "post": {
+        "operationId": "create_orders"
+      }
+    },
+    "/orders/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path"
+        }
+      ],
+      "get": {
+        "operationId": "get_orders"
+      },
+      "put": {
+        "operationId": "put_orders"
+      },
+      "patch": {
+        "operationId": "patch_orders"
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "list_users"
+      },
+      "post": {
+        "operationId": "create_users"
+      }
+    },
+    "/users/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path"
+        }
+      ],
+      "get": {
+        "operationId": "get_users"
+      },
+      "put": {
+        "operationId": "put_users"
+      },
+      "patch": {
+        "operationId": "patch_users"
+      }
+    },
+    "/carts": {
+      "get": {
+        "operationId": "list_carts"
+      },
+      "post": {
+        "operationId": "create_carts"
+      }
+    },
+    "/carts/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path"
+        }
+      ],
+      "get": {
+        "operationId": "get_carts"
+      },
+      "put": {
+        "operationId": "put_carts"
+      },
+      "patch": {
+        "operationId": "patch_carts"
+      }
+    }
+  }
+}

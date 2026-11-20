@@ -1,0 +1,15 @@
+package com.example.ratelimiter.adapter.in.web.admin.dto;
+
+import com.example.ratelimiter.domain.model.PageResult;
+import java.util.List;
+import java.util.function.Function;
+
+/** Paginated list payload. */
+public record PageResponse<T>(
+        List<T> content, int page, int size, long totalElements, int totalPages) {
+
+    public static <D, T> PageResponse<T> from(PageResult<D> result, Function<D, T> mapper) {
+        return new PageResponse<>(result.content().stream().map(mapper).toList(),
+                result.page(), result.size(), result.totalElements(), result.totalPages());
+    }
+}

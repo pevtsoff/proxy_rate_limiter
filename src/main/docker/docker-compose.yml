@@ -1,0 +1,167 @@
+# Local stack of the Proxy Rate Limiter. Use ./run.sh, ./test.sh and ./seed.sh from the
+# repository root; they call:  docker compose --env-file .env -f src/main/docker/docker-compose.yml
+name: proxy-rate-limiter
+
+x-proxy-environment: &proxy-environment
+  POSTGRES_HOST: postgres
+  POSTGRES_INTERNAL_PORT: "5432"
+  POSTGRES_DB: ${POSTGRES_DB}
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  REDIS_HOST: redis
+  REDIS_INTERNAL_PORT: "6379"
+  TARGET_API_URL: http://target-api:${TARGET_API_PORT}
+  TARGET_OPENAPI_PATH: ${TARGET_OPENAPI_PATH}
+  UPSTREAM_TIMEOUT_SECONDS: ${UPSTREAM_TIMEOUT_SECONDS}
+  JWT_SECRET: ${JWT_SECRET}
+  JWT_DEFAULT_TTL_SECONDS: ${JWT_DEFAULT_TTL_SECONDS}
+  ADMIN_USERNAME: ${ADMIN_USERNAME}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+  LRU_CACHE_CAPACITY: ${LRU_CACHE_CAPACITY}
+  LRU_CACHE_TTL: ${LRU_CACHE_TTL}
+  DEFAULT_POLICY_NAME: ${DEFAULT_POLICY_NAME}
+  DEFAULT_POLICY_STRATEGY: ${DEFAULT_POLICY_STRATEGY}
+  DEFAULT_POLICY_REQUESTS: ${DEFAULT_POLICY_REQUESTS}
+  DEFAULT_POLICY_PERIOD: ${DEFAULT_POLICY_PERIOD}
+  LOG_LEVEL: ${LOG_LEVEL}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: proxy-rate-limiter-postgres-${DOCKER_TAG}-1
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: proxy-rate-limiter-redis-${DOCKER_TAG}-1
+    ports:
+      - "${REDIS_PORT}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  target-api:
+    build:
+      context: ../../..
+      dockerfile: src/main/docker/target-api/Dockerfile
+    image: proxy-rate-limiter-target-api-${DOCKER_TAG}:latest
+    container_name: proxy-rate-limiter-target-api-${DOCKER_TAG}-1
+    environment:
+      TARGET_API_PORT: ${TARGET_API_PORT}
+      LOG_LEVEL: ${LOG_LEVEL}
+    ports:
+      - "${TARGET_API_PORT}:${TARGET_API_PORT}"
+    volumes:
+      - ../../../target-api/pom.xml:/workspace/pom.xml
+      - ../../../target-api/src/main:/workspace/src/main
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:${TARGET_API_PORT}/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  proxy:
+    build:
+      context: ../../..
+      dockerfile: src/main/docker/proxy/Dockerfile
+    image: proxy-rate-limiter-${DOCKER_TAG}:local
+    container_name: proxy-rate-limiter-proxy-${DOCKER_TAG}-1
+    environment:
+      <<: *proxy-environment
+      PROXY_PORT: ${PROXY_PORT}
+      RESOURCE_SYNC_ON_STARTUP: ${RESOURCE_SYNC_ON_STARTUP}
+    ports:
+      - "${PROXY_PORT}:${PROXY_PORT}"
+    volumes:
+      - ../../../pom.xml:/workspace/pom.xml
+      - ../../../db:/workspace/db
+      - ../../../src/main:/workspace/src/main
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      target-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:${PROXY_PORT}/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 20s
+
+  # Second proxy instance sharing PostgreSQL and Redis: demonstrates that limits hold across
+  # instances (./run.sh --multi).
+  proxy-replica:
+    profiles: ["multi"]
+    image: proxy-rate-limiter-${DOCKER_TAG}:local
+    container_name: proxy-rate-limiter-proxy-replica-${DOCKER_TAG}-1
+    environment:
+      <<: *proxy-environment
+      PROXY_PORT: ${PROXY_REPLICA_PORT}
+      RESOURCE_SYNC_ON_STARTUP: "false"
+    ports:
+      - "${PROXY_REPLICA_PORT}:${PROXY_REPLICA_PORT}"
+    depends_on:
+      proxy:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:${PROXY_REPLICA_PORT}/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 20s
+
+  locust:
+    profiles: ["perf"]
+    image: locustio/locust:latest
+    container_name: proxy-rate-limiter-locust-${DOCKER_TAG}-1
+    environment:
+      PROXY_URL: http://proxy:${PROXY_PORT}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    volumes:
+      - ../../test/performance:/mnt/locust:ro
+    ports:
+      - "${LOCUST_PORT}:8089"
+    command: -f /mnt/locust/locustfile.py --host http://proxy:${PROXY_PORT}
+    depends_on:
+      proxy:
+        condition: service_healthy
+
+  tests:
+    profiles: ["test"]
+    build:
+      context: ../../..
+      dockerfile: src/main/docker/tests/Dockerfile
+    image: proxy-rate-limiter-tests-${DOCKER_TAG}:latest
+    container_name: proxy-rate-limiter-tests-${DOCKER_TAG}-1
+    environment:
+      # Testcontainers runs sibling containers on the host's Docker daemon and reaches their
+      # published ports through the host gateway.
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+      MAVEN_ARGS: ${MAVEN_ARGS:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - maven-repository:/root/.m2
+
+volumes:
+  postgres-data:
+  maven-repository:

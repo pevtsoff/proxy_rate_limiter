@@ -1,0 +1,76 @@
+# Proxy Rate Limiter configuration. Every value can be overridden from .env via docker compose.
+server:
+  port: ${PROXY_PORT:8000}
+  shutdown: graceful
+
+spring:
+  application:
+    name: proxy-rate-limiter
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_INTERNAL_PORT:5432}/${POSTGRES_DB:proxy}
+    username: ${POSTGRES_USER:proxy}
+    password: ${POSTGRES_PASSWORD:proxy}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    placeholders:
+      default_policy_name: ${DEFAULT_POLICY_NAME:default}
+      default_policy_strategy: ${DEFAULT_POLICY_STRATEGY:moving-window}
+      default_policy_requests: ${DEFAULT_POLICY_REQUESTS:60}
+      default_policy_period: ${DEFAULT_POLICY_PERIOD:minute}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_INTERNAL_PORT:6379}
+  cache:
+    type: caffeine
+    cache-names: applicable-rules
+    # MUC5: LRU-style bounded cache; CAPACITY and TTL (seconds) come from .env.
+    caffeine:
+      spec: maximumSize=${LRU_CACHE_CAPACITY:1000},expireAfterWrite=${LRU_CACHE_TTL:3600}s,recordStats
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    serialization:
+      write-dates-as-timestamps: false
+  mvc:
+    # Keep form bodies of PUT/PATCH untouched so they can be proxied byte for byte.
+    formcontent:
+      filter:
+        enabled: false
+
+vaadin:
+  url-mapping: /ui/*
+  launch-browser: false
+
+target-api:
+  base-url: ${TARGET_API_URL:http://localhost:8001}
+  openapi-path: ${TARGET_OPENAPI_PATH:/v3/api-docs}
+  timeout: ${UPSTREAM_TIMEOUT_SECONDS:10}s
+  sync-on-startup: ${RESOURCE_SYNC_ON_STARTUP:true}
+
+proxy:
+  security:
+    jwt-secret: ${JWT_SECRET}
+    jwt-ttl: ${JWT_DEFAULT_TTL_SECONDS:86400}s
+    admin-username: ${ADMIN_USERNAME:admin}
+    admin-password: ${ADMIN_PASSWORD:admin}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,caches,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    com.example.ratelimiter: ${LOG_LEVEL:INFO}

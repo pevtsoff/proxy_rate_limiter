@@ -1,0 +1,19 @@
+server:
+  port: ${TARGET_API_PORT:8001}
+spring:
+  application:
+    name: target-api
+  threads:
+    virtual:
+      enabled: true
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}

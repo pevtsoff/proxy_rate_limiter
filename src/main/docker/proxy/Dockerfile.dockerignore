@@ -1,0 +1,15 @@
+# Build context is the repository root; keep it small and free of local artefacts.
+**/target
+**/node_modules
+.git
+.idea
+.vscode
+.venv
+.pytest_cache
+.ruff_cache
+.agents
+.claude
+.env
+**/*.log
+src/main/frontend/generated
+src/main/bundles

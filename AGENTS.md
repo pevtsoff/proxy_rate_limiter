@@ -1,11 +1,14 @@
 # Python coding standards
 
-- Keep every import at module scope. Never place imports inside functions or methods, including to work around optional dependencies or import cycles. Resolve dependencies at module scope; use `TYPE_CHECKING` for type-only imports.
-- Keep each function and method to 30 lines or fewer. Split longer implementations into small, intention-revealing helpers. Prefer functions as comments: helper names should communicate the steps and make comments that merely narrate code unnecessary.
-- Put each class in its own `.py` file. Name the file after the primary class using `snake_case`.
-- Add type annotations to function and method parameters and return values, especially for public interfaces.
-- Follow PEP 8 naming: `snake_case` for functions and variables, `PascalCase` for classes, and `UPPER_SNAKE_CASE` for constants.
-- Keep comments focused on why a non-obvious decision exists; use docstrings for public modules, classes, and functions where they add useful context.
-- Raise specific exceptions and preserve useful error context. Do not catch and silently discard errors.
-- Follow the repository's Ruff configuration for imports, linting, and formatting (100-character line length; double quotes).
-- Use functions as comments approach
+- Keep all imports at the top of each `.java` file. Never use fully qualified class names inline as a workaround for import conflicts. Resolve circular dependencies through proper package design and dependency inversion.
+- Keep each method to 30 lines or fewer. Split longer implementations into small, intention-revealing private methods. Prefer the "functions as comments" approach: method names should communicate the steps and make comments that merely narrate code unnecessary.
+- Put each public class, interface, enum, and record in its own `.java` file. Use `PascalCase` for filenames, matching the primary type name.
+- Use explicit Java types and avoid raw types. Prefer generics, immutable DTOs, Java records where appropriate, and strongly typed method parameters and return values.
+- Follow standard Java naming conventions: `camelCase` for methods and variables, `PascalCase` for classes and interfaces, and `UPPER_SNAKE_CASE` for constants. Use packages in lowercase.
+- Keep comments focused on why a non-obvious decision exists. Use Javadoc for public APIs, classes, and methods where additional context is useful.
+- Throw specific exceptions and preserve useful error context. Use centralized exception handling where appropriate. Never catch and silently discard exceptions.
+- Follow the repository's Checkstyle or Spotless configuration for imports, linting, and formatting. Use consistent Java formatting and a 100-character line length.
+- Prefer constructor-based dependency injection over field injection. Use final fields for immutable dependencies.
+- Follow SOLID principles and keep classes focused on a single responsibility.
+- Prefer composition over inheritance and avoid unnecessary abstractions.
+- Use the "functions as comments" approach: method names should describe the implementation steps clearly enough that comments explaining what the code does are unnecessary.
